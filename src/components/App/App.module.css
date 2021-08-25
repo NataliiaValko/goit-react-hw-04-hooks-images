@@ -1,0 +1,31 @@
+.gallery {
+  padding-top: 40px;
+  padding-bottom: 40px;
+}
+
+.gallery__text {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 32px;
+  line-height: 1.3;
+  color: rgb(133, 130, 130);
+}
+
+.gallery__request {
+  margin: 0;
+  font-size: 40px;
+  line-height: 1.3;
+  color: rgb(133, 130, 130);
+}
+.gallery__error {
+  margin: 0;
+  font-size: 40px;
+  line-height: 1.3;
+  color: rgb(133, 130, 130);
+}
+
+.modal__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

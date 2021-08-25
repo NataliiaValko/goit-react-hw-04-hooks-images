@@ -1,0 +1,13 @@
+.loader {
+  position: absolute;
+  top: 200px;
+  left: 550px;
+}
+
+.loader__text {
+  margin-top: 50px;
+  margin-bottom: 0;
+  font-size: 28px;
+  line-height: 1.3;
+  color: rgb(133, 130, 130);
+}
