@@ -1,7 +1,6 @@
-import { Component } from "react";
+import { useState, useEffect } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-// import Gallery from "../Gallery";
 import Searchbar from "../Searchbar";
 import apiPixabay from "../../service/image-api";
 import Container from "../Container";
@@ -16,150 +15,133 @@ const Status = {
   PENDING: "pending",
   RESOLVED: "resolved",
   REJECTED: "rejected",
-  MORE_LOAD: "moreLoad",
+  LOADING: "loading",
 };
 
-class App extends Component {
-  state = {
-    query: "",
-    images: [],
-    page: 1,
-    error: "",
-    status: Status.IDLE,
-    total: null,
-    showModal: false,
-    urlModal: "",
-    onLoading: false,
-  };
+const App = () => {
+  const [query, setQuery] = useState("");
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [error, setError] = useState("");
+  const [status, setStatus] = useState(Status.IDLE);
+  const [total, setTotal] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [urlModal, seUrlModal] = useState("");
+  const [onLoading, setOnLoading] = useState(false);
 
-  onGetImages(query, page) {
+  const onGetImages = (query, page) => {
+    if (query === "") return;
+
     apiPixabay
       .fetchImage(query, page)
       .then(({ hits, total }) => {
-        this.setState({
-          images: [...this.state.images, ...hits],
-          total: total / 12 > 500 ? 500 : total / 12,
-        });
+        setImages([...images, ...hits]);
+        setTotal(total / 12 > 500 ? 500 : total / 12);
 
-        hits[0]
-          ? this.setState({ status: Status.RESOLVED })
-          : this.setState({
-              status: Status.REJECTED,
-              error:
-                "We couldn’t find anything =/. Change your request, please!",
-            });
+        hits[0] ? setStatus(Status.RESOLVED) : setStatus(Status.REJECTED);
+
+        !hits[0] &&
+          setError(
+            "We couldn’t find anything =/. Change your request, please!"
+          );
+        window.scrollTo({
+          top: document.documentElement.scrollHeight,
+          behavior: "smooth",
+        });
       })
       .catch((txt) => {
-        this.setState({ status: Status.REJECTED, error: `${txt}` });
+        setStatus(Status.REJECTED);
+        setError(`${txt}`);
       });
-  }
+  };
 
-  componentDidUpdate(prevProps, prevState) {
-    const newQuery = this.state.query;
-    const newPage = this.state.page;
-
-    if (prevState.query !== newQuery) {
-      this.setState({ status: Status.PENDING, error: "", images: [], page: 1 });
-      this.onGetImages(newQuery, newPage);
+  useEffect(() => {
+    if (status === Status.IDLE) {
+      return;
     }
 
-    if (prevState.page !== newPage) {
-      this.setState({ error: "" });
-      this.onGetImages(newQuery, newPage);
+    if (status === Status.LOADING) {
+      setError("");
+      setStatus(Status.PENDING);
+      onGetImages(query, page);
     }
 
-    if (!this.state.showModal && !prevState.showModal) {
-      window.scrollTo({
-        top: document.documentElement.scrollHeight,
-        behavior: "smooth",
-      });
+    if (status !== Status.LOADING) {
+      setError("");
+      onGetImages(query, page);
     }
-  }
+  }, [query, page]);
 
-  openModal = (url) => {
-    this.setState(({ showModal }) => ({
-      showModal: !showModal,
-      urlModal: url,
-    }));
+  const toggleShowModal = () => {
+    setShowModal(!showModal);
   };
 
-  closeModal = () => {
-    this.setState(({ showModal }) => ({
-      showModal: !showModal,
-      urlModal: "",
-    }));
+  const toggleOnLoading = () => {
+    setOnLoading(!onLoading);
   };
 
-  toggleOnLoading = () => {
-    this.setState(({ onLoading }) => ({ onLoading: !onLoading }));
+  const openModal = (url) => {
+    toggleShowModal();
+    seUrlModal(url);
   };
 
-  handleFormSubmit = (query) => {
-    this.setState({ query });
+  const closeModal = () => {
+    toggleShowModal();
+    seUrlModal("");
   };
 
-  handleIncrement = () => {
-    this.setState({ page: this.state.page + 1 });
+  const handleFormSubmit = (query) => {
+    setImages([]);
+    setQuery(query);
+    setPage(1);
+    setStatus(Status.LOADING);
+    setTotal(null);
   };
 
-  render() {
-    const {
-      query,
-      images,
-      page,
-      error,
-      status,
-      total,
-      onLoading,
-      showModal,
-      urlModal,
-    } = this.state;
+  const handleIncrement = () => {
+    setPage(page + 1);
+  };
 
-    return (
-      <>
-        <ToastContainer />
-        <Searchbar onSubmit={this.handleFormSubmit} />
-        <section className={s.gallery}>
-          <Container>
-            {status === "idle" && (
-              <p className={s.gallery__request}>Please, enter your request!</p>
-            )}
-            {status === "pending" && <Loader />}
-            {status === "rejected" && (
-              <p className={s.gallery__error}>Oops! {error}</p>
-            )}
-            {status === "resolved" && (
-              <>
-                <p className={s.gallery__text}>
-                  Results on request of "{query}"
-                </p>
-                <ImageGallery
-                  images={images}
-                  openModal={this.openModal}
-                  toggleOnLoading={this.toggleOnLoading}
-                />
-                {page < total && (
-                  <Button handleIncrement={this.handleIncrement} />
-                )}
-              </>
-            )}
-          </Container>
-        </section>
+  return (
+    <>
+      <ToastContainer />
+      <Searchbar onSubmit={handleFormSubmit} />
+      <section className={s.gallery}>
+        <Container>
+          {status === Status.IDLE && (
+            <p className={s.gallery__request}>Please, enter your request!</p>
+          )}
 
-        {showModal && (
-          <Modal onClose={this.closeModal}>
-            {onLoading && <Loader />}
-            <img
-              onLoad={this.toggleOnLoading}
-              src={urlModal}
-              alt=""
-              className={s.modal__image}
-            />
-          </Modal>
-        )}
-      </>
-    );
-  }
-}
+          {status === Status.REJECTED && (
+            <p className={s.gallery__error}>Oops! {error}</p>
+          )}
+          {status === Status.RESOLVED && (
+            <>
+              <p className={s.gallery__text}>Results on request of "{query}"</p>
+              <ImageGallery
+                images={images}
+                openModal={openModal}
+                toggleOnLoading={toggleOnLoading}
+              />
+              {page < total && <Button handleIncrement={handleIncrement} />}
+            </>
+          )}
+          {status === Status.PENDING && <Loader />}
+        </Container>
+      </section>
+      {showModal && (
+        <Modal onClose={closeModal}>
+          {onLoading && <Loader />}
+          <img
+            onLoad={toggleOnLoading}
+            src={urlModal}
+            alt=""
+            className={s.modal__image}
+          />
+        </Modal>
+      )}
+    </>
+  );
+};
 
 export default App;
